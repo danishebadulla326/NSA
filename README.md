@@ -1,6 +1,7 @@
 # Replication Instructions for "Normalized Space Alignment: A Versatile Metric for Representation Space Discrepancy Minimization"
 
-This repository contains code and instructions for replicating the results of the paper titled "Normalized Space Alignment: A Versatile Metric for Representation Space Discrepancy Minimization." The experiments are divided into three parts: **NSA - AutoEncoder**, **Adversarial Analysis**, and **GNN Analysis**. Follow the steps below to replicate the results:
+This repository contains code and instructions for replicating the results of the paper titled "Normalized Space Alignment: A Versatile Metric for Representation Space Discrepancy Minimization." 
+The experiments are divided into four parts: **NSA - AutoEncoder**, **Adversarial Analysis**, **GNN Analysis** and **CNN Analysis**. Follow the steps below to replicate the results:
 
 ## Requirements
 - cuda 11.7
@@ -20,7 +21,7 @@ This repository contains code and instructions for replicating the results of th
 
 ### Step 2: AutoEncoder Training
 - In the same directory, run the `AE training.ipynb` notebook four times, each for a different dataset.
-- Modify the `dataset_name` and `input_dim` in cell 3 according to the dataset being used. Here are the dataset names and input dimensions:
+- Modify the `dataset_name` and `input_dim` in the config cell according to the dataset being used. Here are the dataset names and input dimensions:
 
     - MNIST: 28x28
     - F-MNIST: 28x28
@@ -42,21 +43,33 @@ This repository contains code and instructions for replicating the results of th
 
 ## Part 2: Adversarial Analysis
 
-### Step 5: Adversarial Analysis
+### Step 1: Running the models
 - Go to the `NSA/Adversarial Analysis` directory.
 - Create 2 folders `accuracy_vals` and `feature_vals` in `notebooks folder`
 - Run the `adversarial analysis.ipynb` notebook five times, each with a different perturbation rate. Change the perturbation rates to: `[0.05, 0.1, 0.15, 0.2, 0.25]`
 
+### Step 2: Visualization
 - Run the `Visualization.ipynb` notebook to generate the results
 
 - Run the `Nodewise Adversarial Analysis.ipynb` notebook to obtain the nodewise analysis
 
 ## Part 3: GNN Analysis
 
-### Step 6: GNN Analysis
+### Step 1: GNN Analysis
 - Navigate to the `NSA/GNN_analysis` directory.
 - There are four notebooks, one for each GNN architecture. Run them in any order twice to generate two different runs. For each notebook, the `dataset_name` can be changed. Use `seed` 1234567 for the first run and `seed` 12345 for the second run.
+
+### Step 2: Heatmap Visualization
 - Run metric validation tests after completing all four notebooks twice. Change the dataset name in cell 5.
+
+## Part 4: CNN Analysis
+
+## Step 1: Download data and run evaluation pass on models
+- Use ImageNet\_Tests.ipynb notebook to download the data. To download the validation data, we obtain the data from the Kaggle. If you plan on following the same steps, you will require a Kaggle account. You can also obtain the ImageNet dataset through your own sources. You will need to change the data loading path in the notebook for the code to work.
+
+##Step 2: Generate Heatmaps
+- Use the Generate\_Heatmaps.ipynb notebook to generate the heatmaps using CKA, NSA and RTD and save them.
+
 
 
 These instructions will guide you through replicating the results of the paper. Please refer to the specific notebooks in the provided directory for detailed code and analysis.

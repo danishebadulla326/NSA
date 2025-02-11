@@ -347,7 +347,41 @@ class LID_NSALoss_v3(nn.Module):
         return lid_nsa
 
 
+class LNSA_loss(nn.Module):
+    def __init__(self, k=5, eps=1e-7, full=False, **kwargs):
+        super().__init__()
+        self.k = k
+        self.eps = eps
+        self.full = full
+    def compute_neighbor_mask(self, X, normA1):
+        x_dist = torch.cdist(X,X)+self.eps
+        x_dist = x_dist/normA1
+        values, indices = torch.topk(x_dist, self.k+1, largest=False)
+        values, indices = values[:,1:], indices[:,1:]
+        norm_values=values[:,-1].view(values.shape[0],1)
+        lid_X = (1/self.k)*torch.sum(torch.log10(values) - torch.log10(norm_values),axis=1) + self.eps
+        return indices, lid_X
 
+
+    def forward(self, X, Z):
+        mean_x = torch.mean(X, dim=0)
+        mean_z = torch.mean(Z, dim=0)
+        
+        normA1 = torch.quantile(torch.sqrt(torch.sum((X - mean_x) ** 2, dim=1)),0.98)
+        normA2 = torch.quantile(torch.sqrt(torch.sum((Z - mean_z) ** 2, dim=1)),0.98)
+
+        nn_mask, lid_X = self.compute_neighbor_mask(X, normA1)
+        z_dist = torch.cdist(Z,Z)+self.eps
+        z_dist = z_dist/normA2
+        rows = torch.arange(z_dist.shape[0]).view(-1, 1).expand_as(nn_mask)
+        # # # Extract values
+        extracted_values = z_dist[rows, nn_mask]
+        norm_values=extracted_values[:,-1].view(extracted_values.shape[0],1)
+        #print(norm_values)
+        lid_Z = (1/self.k)*torch.sum(torch.log10(extracted_values) - torch.log10(norm_values),axis=1) + self.eps
+        #lid_nsa = sum(torch.square(torch.exp(lid_X/self.k) - torch.exp(lid_Z/self.k)))/(len(X))
+        lid_nsa = sum(torch.square(lid_X - lid_Z))/len(X)
+        return lid_nsa#, lid_X, lid_Z
 
 
 class NSALoss3(nn.Module):

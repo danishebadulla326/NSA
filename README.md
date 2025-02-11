@@ -39,7 +39,7 @@ The experiments are divided into four parts: **NSA - AutoEncoder**, **Adversaria
 - Run the `Visualization and Metrics.ipynb` notebook four times, changing the `dataset_name` accordingly.
 
 ### Step 5: Downstream analysis.ipynb
-- Run this notebook to generate the downstream analysis results for Link Prediction, Semantic Text Similarity and tSNE visualization.
+- Run this notebook to generate the Knowledge Distillation results for Link Prediction, Semantic Text Similarity and tSNE visualization.
 
 ## Part 2: Adversarial Analysis
 

@@ -187,8 +187,14 @@ class LID_NSALoss_v1(nn.Module):
         return indices, lid_X
     
     def forward(self, X, Z):
-        normA1 = torch.quantile(torch.sqrt(torch.sum(X**2,axis=1)),0.98)
-        normA2 = torch.quantile(torch.sqrt(torch.sum(Z**2,axis=1)),0.98)
+        # normA1 = torch.quantile(torch.sqrt(torch.sum(X**2,axis=1)),0.98)
+        # normA2 = torch.quantile(torch.sqrt(torch.sum(Z**2,axis=1)),0.98)
+        mean_x = torch.mean(X, dim=0)
+        mean_z = torch.mean(Z, dim=0)
+        
+        normA1 = torch.quantile(torch.sqrt(torch.sum((X - mean_x) ** 2, dim=1)),0.98)
+        normA2 = torch.quantile(torch.sqrt(torch.sum((Z - mean_z) ** 2, dim=1)),0.98)
+
         nn_mask, lid_X = self.compute_neighbor_mask(X, normA1)
         z_dist = torch.cdist(Z,Z)+self.eps
         z_dist = z_dist/normA2
@@ -314,8 +320,15 @@ class LID_NSALoss_v3(nn.Module):
 
 
     def forward(self, X, Z):
-        normA1 = torch.quantile(torch.sqrt(torch.sum(X**2,axis=1)),0.98)
-        normA2 = torch.quantile(torch.sqrt(torch.sum(Z**2,axis=1)),0.98)
+        # normA1 = torch.quantile(torch.sqrt(torch.sum(X**2,axis=1)),0.98)
+        # normA2 = torch.quantile(torch.sqrt(torch.sum(Z**2,axis=1)),0.98)
+
+        mean_x = torch.mean(X, dim=0)
+        mean_z = torch.mean(Z, dim=0)
+        
+        normA1 = torch.quantile(torch.sqrt(torch.sum((X - mean_x) ** 2, dim=1)),0.98)
+        normA2 = torch.quantile(torch.sqrt(torch.sum((Z - mean_z) ** 2, dim=1)),0.98)
+
         nn_mask, lid_X = self.compute_neighbor_mask(X, normA1)
         z_dist = torch.cdist(Z,Z)+self.eps
         z_dist = z_dist/normA2
@@ -332,3 +345,35 @@ class LID_NSALoss_v3(nn.Module):
         # print(torch.square(torch.exp(lid_X/self.k) - torch.exp(lid_Z/self.k)))
         lid_nsa = sum(torch.square(torch.exp(lid_X/self.k) - torch.exp(lid_Z/self.k)))/(len(X)*10)
         return lid_nsa
+
+
+
+
+
+class NSALoss3(nn.Module):
+    def __init__(self, mode='raw', **kwargs):
+        super().__init__()
+        self.mode = mode
+    
+    def forward(self, x, z):
+        # normA1 = torch.max(torch.sqrt(torch.sum(x**2,axis=1)))
+        # normA2 = torch.max(torch.sqrt(torch.sum(z**2,axis=1)))
+        if self.mode=='raw':
+            mean_x = torch.mean(x, dim=0)
+            mean_z = torch.mean(z, dim=0)
+            
+            normA1 = torch.quantile(torch.sqrt(torch.sum((x - mean_x) ** 2, dim=1)),0.98)
+            normA2 = torch.quantile(torch.sqrt(torch.sum((z - mean_z) ** 2, dim=1)),0.98)
+            # normA1 = torch.quantile(torch.sqrt(torch.sum(x**2,axis=1)),0.98)
+            # normA2 = torch.quantile(torch.sqrt(torch.sum(z**2,axis=1)),0.98)
+            
+            A1_pairwise = torch.flatten(torch.cdist(x,x))    # compute pairwise dist
+            A2_pairwise = torch.flatten(torch.cdist(z,z))    # compute pairwise dist
+            A1_pairwise = A1_pairwise/(2*normA1)
+            A2_pairwise = A2_pairwise/(2*normA2)
+        elif self.mode=='dist':
+            A1_pairwise = torch.flatten(x)
+            A2_pairwise = torch.flatten(z)
+
+        loss = torch.mean(torch.square(A2_pairwise - A1_pairwise))
+        return loss

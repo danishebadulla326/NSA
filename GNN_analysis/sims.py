@@ -144,56 +144,113 @@ class RTDLoss(nn.Module):
         return loss_xz, loss_zx, loss
 
 class NSALoss(nn.Module):
-    def __init__(self, mode='raw', **kwargs):
+    def __init__(self, mode='raw',**kwargs):
         super().__init__()
         self.mode = mode
-    
+        
     def forward(self, x, z):
-        # normA1 = torch.max(torch.sqrt(torch.sum(x**2,axis=1)))
-        # normA2 = torch.max(torch.sqrt(torch.sum(z**2,axis=1)))
+        mean_x = torch.mean(x, dim=0)
+        mean_z = torch.mean(z, dim=0)
         if self.mode=='raw':
-            normA1 = torch.quantile(torch.sqrt(torch.sum(x**2,axis=1)),0.98)
-            normA2 = torch.quantile(torch.sqrt(torch.sum(z**2,axis=1)),0.98)
+
+            normA1 = torch.quantile(torch.sqrt(torch.sum((x - mean_x) ** 2, dim=1)),0.98)
+            normA2 = torch.quantile(torch.sqrt(torch.sum((z - mean_z) ** 2, dim=1)),0.98)
+    
+            A1_pairwise = torch.cdist(x,x)    # compute pairwise dist
+            A2_pairwise = torch.cdist(z,z)    # compute pairwise dist
             
-            A1_pairwise = torch.flatten(torch.cdist(x,x))    # compute pairwise dist
-            A2_pairwise = torch.flatten(torch.cdist(z,z))    # compute pairwise dist
+            mask = torch.triu(torch.ones_like(A1_pairwise), diagonal=1)
+    
+            A1_pairwise = A1_pairwise[mask.bool()]
+            A2_pairwise = A2_pairwise[mask.bool()]
             A1_pairwise = A1_pairwise/(2*normA1)
             A2_pairwise = A2_pairwise/(2*normA2)
-        elif self.mode=='dist':
+        elif self.mode =='dist':
             A1_pairwise = torch.flatten(x)
-            A2_pairwise = torch.flatten(z)
+            A2_pairwise = torch.flatten(z)            
 
-        loss = torch.mean(torch.abs(A2_pairwise - A1_pairwise))
+        loss = torch.mean(torch.square(A2_pairwise - A1_pairwise))
         return loss
 
-
-class NSALoss2(nn.Module):
-    def __init__(self, n_runs = 1, batch_size=4000, **kwargs):
-        super().__init__()
-        self.n_runs = n_runs
-        self.batch_size = batch_size
-    def forward(self, X, Z):
-        # normA1 = torch.max(torch.sqrt(torch.sum(x**2,axis=1)))
-        # normA2 = torch.max(torch.sqrt(torch.sum(z**2,axis=1)))   
-        norm_list1 = []
-        norm_list2 = []
-        results = []
-        for i in tqdm(range(self.n_runs)):
-            ids = np.random.choice(np.arange(0, len(X)),size=min(self.batch_size, len(X)), replace=False)
-            x = X[ids]
-            z = Z[ids]
-            normA1 = torch.quantile(torch.sqrt(torch.sum(x**2,axis=1)),0.98)
-            normA2 = torch.quantile(torch.sqrt(torch.sum(z**2,axis=1)),0.98)
-            norm_list1.append(normA1)
-            norm_list2.append(normA2)
-            A1_pairwise = torch.flatten(torch.cdist(x,x))    # compute pairwise dist
-            A2_pairwise = torch.flatten(torch.cdist(z,z))    # compute pairwise dist         
-            A1_pairwise = A1_pairwise/(2*normA1)
-            A2_pairwise = A2_pairwise/(2*normA2)
+# class NSALoss(nn.Module):
+#     def __init__(self, mode='raw', **kwargs):
+#         super().__init__()
+#         self.mode = mode
+    
+#     def forward(self, x, z):
+#         # normA1 = torch.max(torch.sqrt(torch.sum(x**2,axis=1)))
+#         # normA2 = torch.max(torch.sqrt(torch.sum(z**2,axis=1)))
+#         if self.mode=='raw':
+#             normA1 = torch.quantile(torch.sqrt(torch.sum(x**2,axis=1)),0.98)
+#             normA2 = torch.quantile(torch.sqrt(torch.sum(z**2,axis=1)),0.98)
             
-            loss = torch.mean(torch.abs(A2_pairwise - A1_pairwise))
-            results.append(loss)
-        return norm_list1, norm_list2, results
+#             A1_pairwise = torch.flatten(torch.cdist(x,x))    # compute pairwise dist
+#             A2_pairwise = torch.flatten(torch.cdist(z,z))    # compute pairwise dist
+#             A1_pairwise = A1_pairwise/(2*normA1)
+#             A2_pairwise = A2_pairwise/(2*normA2)
+#         elif self.mode=='dist':
+#             A1_pairwise = torch.flatten(x)
+#             A2_pairwise = torch.flatten(z)
+
+#         loss = torch.mean(torch.abs(A2_pairwise - A1_pairwise))
+#         return loss
+
+
+# class NSALoss2(nn.Module):
+#     def __init__(self, n_runs = 1, batch_size=4000, **kwargs):
+#         super().__init__()
+#         self.n_runs = n_runs
+#         self.batch_size = batch_size
+#     def forward(self, X, Z):
+#         # normA1 = torch.max(torch.sqrt(torch.sum(x**2,axis=1)))
+#         # normA2 = torch.max(torch.sqrt(torch.sum(z**2,axis=1)))   
+#         norm_list1 = []
+#         norm_list2 = []
+#         results = []
+#         for i in tqdm(range(self.n_runs)):
+#             ids = np.random.choice(np.arange(0, len(X)),size=min(self.batch_size, len(X)), replace=False)
+#             x = X[ids]
+#             z = Z[ids]
+#             normA1 = torch.quantile(torch.sqrt(torch.sum(x**2,axis=1)),0.98)
+#             normA2 = torch.quantile(torch.sqrt(torch.sum(z**2,axis=1)),0.98)
+#             norm_list1.append(normA1)
+#             norm_list2.append(normA2)
+#             A1_pairwise = torch.flatten(torch.cdist(x,x))    # compute pairwise dist
+#             A2_pairwise = torch.flatten(torch.cdist(z,z))    # compute pairwise dist         
+#             A1_pairwise = A1_pairwise/(2*normA1)
+#             A2_pairwise = A2_pairwise/(2*normA2)
+            
+#             loss = torch.mean(torch.abs(A2_pairwise - A1_pairwise))
+#             results.append(loss)
+#         return norm_list1, norm_list2, results
+
+# class NSALoss3(nn.Module):
+#     def __init__(self, mode='raw', **kwargs):
+#         super().__init__()
+#         self.mode = mode
+    
+#     def forward(self, x, z):
+#         # normA1 = torch.max(torch.sqrt(torch.sum(x**2,axis=1)))
+#         # normA2 = torch.max(torch.sqrt(torch.sum(z**2,axis=1)))
+#         if self.mode=='raw':
+#             mean_x = torch.mean(x, dim=0)
+#             mean_z = torch.mean(z, dim=0)
+            
+#             normA1 = torch.quantile(torch.sqrt(torch.sum((x - mean_x) ** 2, dim=1)),0.98)
+#             normA2 = torch.quantile(torch.sqrt(torch.sum((z - mean_z) ** 2, dim=1)),0.98)
+#             # normA1 = torch.quantile(torch.sqrt(torch.sum(x**2,axis=1)),0.98)
+#             # normA2 = torch.quantile(torch.sqrt(torch.sum(z**2,axis=1)),0.98)
+            
+#             A1_pairwise = torch.flatten(torch.cdist(x,x))    # compute pairwise dist
+#             A2_pairwise = torch.flatten(torch.cdist(z,z))    # compute pairwise dist
+#             A1_pairwise = A1_pairwise/(2*normA1)
+#             A2_pairwise = A2_pairwise/(2*normA2)
+#         elif self.mode=='dist':
+#             A1_pairwise = torch.flatten(x)
+#             A2_pairwise = torch.flatten(z)
+
+#         loss = torch.mean(torch.abs(A2_pairwise - A1_pairwise))
+#         return loss
 
 def rtd(X,Y, batch_size=400,n_runs = 10):
     loss = RTDLoss(dim=1, engine='ripser')
@@ -401,6 +458,41 @@ def feature_space_linear_cka(features_x, features_y, debiased=False):
 
   return dot_product_similarity / (normalization_x * normalization_y)
 
+class LNSA_loss(nn.Module):
+    def __init__(self, k=5, eps=1e-7, full=False, **kwargs):
+        super().__init__()
+        self.k = k
+        self.eps = eps
+        self.full = full
+    def compute_neighbor_mask(self, X, normA1):
+        x_dist = torch.cdist(X,X)+self.eps
+        x_dist = x_dist/normA1
+        values, indices = torch.topk(x_dist, self.k+1, largest=False)
+        values, indices = values[:,1:], indices[:,1:]
+        norm_values=values[:,-1].view(values.shape[0],1)
+        lid_X = (1/self.k)*torch.sum(torch.log10(values) - torch.log10(norm_values),axis=1) + self.eps
+        return indices, lid_X
+
+
+    def forward(self, X, Z):
+        mean_x = torch.mean(X, dim=0)
+        mean_z = torch.mean(Z, dim=0)
+        
+        normA1 = torch.quantile(torch.sqrt(torch.sum((X - mean_x) ** 2, dim=1)),0.98)
+        normA2 = torch.quantile(torch.sqrt(torch.sum((Z - mean_z) ** 2, dim=1)),0.98)
+
+        nn_mask, lid_X = self.compute_neighbor_mask(X, normA1)
+        z_dist = torch.cdist(Z,Z)+self.eps
+        z_dist = z_dist/normA2
+        rows = torch.arange(z_dist.shape[0]).view(-1, 1).expand_as(nn_mask)
+        # # # Extract values
+        extracted_values = z_dist[rows, nn_mask]
+        norm_values=extracted_values[:,-1].view(extracted_values.shape[0],1)
+        #print(norm_values)
+        lid_Z = (1/self.k)*torch.sum(torch.log10(extracted_values) - torch.log10(norm_values),axis=1) + self.eps
+        #lid_nsa = sum(torch.square(torch.exp(lid_X/self.k) - torch.exp(lid_Z/self.k)))/(len(X))
+        lid_nsa = sum(torch.square(lid_X - lid_Z))/len(X)
+        return lid_nsa#, lid_X, lid_Z
 
 class LID_NSALoss_v1(nn.Module):
     def __init__(self, k=5, eps=1e-7, full=False, **kwargs):
@@ -427,8 +519,14 @@ class LID_NSALoss_v1(nn.Module):
         return indices, lid_X
     
     def forward(self, X, Z):
-        normA1 = torch.quantile(torch.sqrt(torch.sum(X**2,axis=1)),0.98)
-        normA2 = torch.quantile(torch.sqrt(torch.sum(Z**2,axis=1)),0.98)
+        # normA1 = torch.quantile(torch.sqrt(torch.sum(X**2,axis=1)),0.98)
+        # normA2 = torch.quantile(torch.sqrt(torch.sum(Z**2,axis=1)),0.98)
+        mean_x = torch.mean(X, dim=0)
+        mean_z = torch.mean(Z, dim=0)
+        
+        normA1 = torch.quantile(torch.sqrt(torch.sum((X - mean_x) ** 2, dim=1)),0.98)
+        normA2 = torch.quantile(torch.sqrt(torch.sum((Z - mean_z) ** 2, dim=1)),0.98)
+
         nn_mask, lid_X = self.compute_neighbor_mask(X, normA1)
         z_dist = torch.cdist(Z,Z)+self.eps
         z_dist = z_dist/normA2

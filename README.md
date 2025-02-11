@@ -1,6 +1,6 @@
-# Replication Instructions for "Normalized Space Alignment: A Versatile Metric for Representation Space Discrepancy Minimization"
+# Replication Instructions for "Normalized Space Alignment: A Versatile Metric for Representation Space Analysis"
 
-This repository contains code and instructions for replicating the results of the paper titled "Normalized Space Alignment: A Versatile Metric for Representation Space Discrepancy Minimization." 
+This repository contains code and instructions for replicating the results of the paper titled "Normalized Space Alignment: A Versatile Metric for Representation Space Analysis." 
 The experiments are divided into four parts: **NSA - AutoEncoder**, **Adversarial Analysis**, **GNN Analysis** and **CNN Analysis**. Follow the steps below to replicate the results:
 
 ## Requirements
